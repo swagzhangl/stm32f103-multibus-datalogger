@@ -8,9 +8,13 @@
 """
 import sys, os, time
 
-PORT = "COM8"
+# 串口与日志目录都不依赖本机固定路径：
+#   端口 可用环境变量覆盖（set MULTIBUS_PORT=COM5），默认 COM8
+#   日志目录由本脚本位置推导（tools/ 的上一级 + logs/）
+PORT = os.environ.get("MULTIBUS_PORT", "COM8")
 BAUD = 115200
-LOG_DIR = r"D:\work\2026-09-17-15-24-45\firmware\logs"
+_TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(os.path.dirname(_TOOLS_DIR), "logs")
 OUTFILE = os.path.join(LOG_DIR, "records_v2.txt")
 
 SETTLE = float(sys.argv[1]) if len(sys.argv) > 1 else 180.0

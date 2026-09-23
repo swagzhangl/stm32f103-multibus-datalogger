@@ -258,15 +258,29 @@ if (app_lock_spi(LOCK_TMO_MS) != 0U) {      /* 200 ms 拿不到锁 */
 
 ### 编译
 
+Makefile 默认使用 `PATH` 里的 `arm-none-eabi-*`。若工具链不在 `PATH`
+（例如只想用 CubeIDE 自带的那份，它在 `<CubeIDE 安装目录>/STM32CubeIDE/plugins/`
+下的 `com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.*/tools/bin`），
+用变量指过去即可，**不需要改 Makefile**：
+
+```bash
+make                                                          # 工具链已在 PATH 时
+make TOOLCHAIN="/path/to/gcc-arm-none-eabi/bin"               # 或显式指定
+```
+
+常用目标：
+
 ```bash
 make            # 产出 build/fw.elf + fw.hex + fw.bin
 make size       # 查看 Flash / RAM 占用
 make check-src  # 检查"新增了 .c 但没加进源文件清单"
-make flash      # 用 CubeProgrammer 烧录
+make flash      # 用 STM32CubeProgrammer 烧录（CLI 需在 PATH，或用 FLASHER= 指定）
 ```
 
 也可以直接用 STM32CubeIDE 打开工程目录
 （`File > Import > General > Existing Projects into Workspace`），`Ctrl+B` 编译、`F11` 调试。
+**注意两种构建的产物不同**：Makefile 出 `build/`（含 `.hex`），CubeIDE 出 `Debug/`（只有 `.elf`）——
+在 CubeIDE 里改完代码却去烧 `build/` 里的旧 `.hex`，是很容易踩的坑。
 
 ### 接线
 

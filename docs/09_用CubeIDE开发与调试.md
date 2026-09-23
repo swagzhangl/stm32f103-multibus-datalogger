@@ -23,7 +23,7 @@
 ```
 ① File → Import…
 ② 选 General → Existing Projects into Workspace → Next
-③ Select root directory 填：D:\work\2026-09-17-15-24-45\firmware
+③ Select root directory 填：<工程目录>
    → Finish
 ```
 
@@ -232,7 +232,7 @@ make check-src
 
 ```
 导入工程            File > Import > General > Existing Projects into Workspace
-                      root = D:\work\2026-09-17-15-24-45\firmware
+                      root = <工程目录>
 
 编译                Ctrl+B
 烧录+调试           F11        （第一次会问你选哪个探头 → ST-LINK）
@@ -254,7 +254,7 @@ make check-src
 ## 附：这个工程文件是怎么来的（可追溯）
 
 `.project` / `.cproject` **不是我凭空编的 XML**，是照你那个**已经证明能编译能烧**的
-`D:\stm32workplace\rtos_logger\` 工程改的，只动了这几处：
+`<另一个 CubeIDE 工程>\` 工程改的，只动了这几处：
 
 | 改动 | 从 | 到 |
 |---|---|---|

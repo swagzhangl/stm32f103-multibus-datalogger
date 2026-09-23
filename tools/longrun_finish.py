@@ -8,8 +8,11 @@
 import sys, os, time
 import serial
 
-PORT, BAUD = "COM8", 115200
-LOG_DIR = r"D:\work\2026-09-17-15-24-45\firmware\logs"
+# 串口与日志目录都不依赖本机固定路径（端口可用 MULTIBUS_PORT 环境变量覆盖）
+PORT = os.environ.get("MULTIBUS_PORT", "COM8")
+BAUD = 115200
+_TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(os.path.dirname(_TOOLS_DIR), "logs")
 STACK_LOG = os.path.join(LOG_DIR, "longrun_stack.txt")
 OUT = os.path.join(LOG_DIR, "longrun_records.txt")
 

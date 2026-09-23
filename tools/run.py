@@ -23,6 +23,7 @@ run.py —— 傻瓜式菜单（给不想学 Python 的人用）
 
 import glob
 import os
+import shutil
 import sys
 import subprocess
 import time
@@ -35,20 +36,52 @@ PORT_FILE = os.path.join(TOOLS_DIR, ".last_port")
 CLI_FILE = os.path.join(TOOLS_DIR, ".cli_path")
 
 # ---------- CubeProgrammer 可执行文件可能在哪 ----------
-#   CubeIDE 会把 CubeProgrammer 作为插件装在自己目录里，插件目录名带版本号，
-#   所以这里用通配符匹配 —— 以后你升级 CubeIDE，版本号变了也照样能找到。
-CLI_PATTERNS = [
-    r"D:\STM32CubeIDE_1.13.1\STM32CubeIDE\plugins"
-    r"\com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*\tools\bin\STM32_Programmer_CLI.exe",
-    r"C:\ST\STM32CubeIDE_1.13.1\STM32CubeIDE\plugins"
-    r"\com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*\tools\bin\STM32_Programmer_CLI.exe",
-    r"D:\ST\STM32CubeIDE_1.13.1\STM32CubeIDE\plugins"
-    r"\com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*\tools\bin\STM32_Programmer_CLI.exe",
-    # 万一是单独装的 STM32CubeProgrammer（GUI 版会带 CLI）
-    r"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe",
-    r"C:\Program Files (x86)\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe",
-    r"D:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe",
-]
+#   不写死盘符 / 版本号，保证换一台机器、换个安装位置也能找到。
+#   优先级：环境变量 STM32_CUBEPROGRAMMER → PATH → CubeIDE 插件目录 → 独立安装版
+CLI_ENV_VAR = "STM32_CUBEPROGRAMMER"
+
+# CubeIDE 把 CubeProgrammer 作为插件装在自己目录里，插件目录名带版本号，
+# 所以用通配符匹配 —— 升级 CubeIDE 后版本号变了照样能找到。
+_CLI_REL = os.path.join(
+    "*STM32CubeIDE*", "STM32CubeIDE", "plugins",
+    "com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*",
+    "tools", "bin", "STM32_Programmer_CLI.exe")
+
+
+def _drives():
+    """当前存在的盘符（Windows）；非 Windows 返回 ['']。"""
+    if os.name != "nt":
+        return [""]
+    return [c + ":" for c in "CDEFGHIJKLMNOPQRSTUVWXYZ"
+            if os.path.exists(c + ":\\")]
+
+
+def cli_patterns():
+    """生成候选路径模式（按优先级）。"""
+    pats = []
+
+    # ① 显式指定：整个路径直接给。
+    #    set STM32_CUBEPROGRAMMER=D:\somewhere\STM32_Programmer_CLI.exe
+    env = os.environ.get(CLI_ENV_VAR, "").strip()
+    if env:
+        pats.append(env)
+
+    # ② CubeIDE 插件目录：盘符 × 常见安装前缀 × 通配版本号
+    for d in _drives():
+        for prefix in ("", "ST",
+                       r"Program Files\STMicroelectronics",
+                       r"Program Files (x86)\STMicroelectronics"):
+            pats.append(os.path.join(d + os.sep, prefix, _CLI_REL))
+
+    # ③ 单独安装的 STM32CubeProgrammer（GUI 版自带 CLI）
+    for d in _drives():
+        for pf in (r"Program Files\STMicroelectronics",
+                   r"Program Files (x86)\STMicroelectronics"):
+            pats.append(os.path.join(
+                d + os.sep, pf, "STM32Cube", "STM32CubeProgrammer",
+                "bin", "STM32_Programmer_CLI.exe"))
+
+    return pats
 
 SEP = "=" * 64
 LINE = "-" * 64
@@ -168,14 +201,23 @@ def save_port(p):
 def find_cli():
     """找 CubeProgrammer 命令行工具。
 
-    顺序：先看上次记住的路径 → 再按通配符在各常见位置找 → 找到就记住。
-    找不到返回空串（由调用方引导手工指定）。
+    顺序：上次记住的路径 → PATH → 环境变量 / 常见安装位置（通配匹配）。
+    找到就记住。找不到返回空串（由调用方引导手工指定）。
     """
     cached = read_text(CLI_FILE)
     if cached and os.path.exists(cached):
         return cached
 
-    for pat in CLI_PATTERNS:
+    # PATH 里有就直接用（有些安装包会加进去）
+    onpath = shutil.which("STM32_Programmer_CLI")
+    if onpath:
+        write_text(CLI_FILE, onpath)
+        return onpath
+
+    for pat in cli_patterns():
+        if os.path.isfile(pat):          # 环境变量给的是完整路径
+            write_text(CLI_FILE, pat)
+            return pat
         hits = sorted(glob.glob(pat))
         if hits:
             write_text(CLI_FILE, hits[-1])
@@ -424,9 +466,12 @@ def do_flash():
     cli = find_cli()
     if not cli:
         print("  没自动找到 STM32_Programmer_CLI.exe。")
-        print("  它通常藏在 CubeIDE 自己的插件目录里（名字里带 cubeprogrammer）：")
-        print(r"     D:\STM32CubeIDE_1.13.1\STM32CubeIDE\plugins"
-              r"\com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*\tools\bin")
+        print("  它通常藏在 CubeIDE 的插件目录里（目录名里带 cubeprogrammer），")
+        print("  形如： <CubeIDE 安装目录>\\STM32CubeIDE\\plugins\\"
+              "com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_*\\tools\\bin\\")
+        print("  也可以在文件管理器里搜文件名 STM32_Programmer_CLI.exe。")
+        print("  提示：设置环境变量 %s 为完整路径，下次就能自动找到。" % CLI_ENV_VAR)
+        print()
         p = ask("把它的完整路径粘进来（直接回车 = 取消）")
         if not p or not os.path.exists(p):
             print("  已取消。")

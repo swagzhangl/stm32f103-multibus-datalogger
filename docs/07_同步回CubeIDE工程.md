@@ -1,6 +1,6 @@
 # 如何同步回 CubeIDE 工程
 
-> 本文解决一个问题：**这份独立工程（Makefile）怎么搬进你已有的 CubeIDE 工程 `D:\stm32workplace\rtos_logger\`？**
+> 本文解决一个问题：**这份独立工程（Makefile）怎么搬进你已有的 CubeIDE 工程 `<另一个 CubeIDE 工程>\`？**
 > 或者你更想直接在命令行用 `make`，那就不需要看这篇。
 
 ---
@@ -160,12 +160,12 @@ STM32F103xB
 ## 方案 C：在 CubeIDE 里用现有 Makefile
 
 1. `File → New → Project… → C/C++ → Makefile Project with Existing Code`
-2. **Location** 指向 `D:\work\2026-09-17-15-24-45\firmware`
+2. **Location** 指向 `<工程目录>`
 3. Toolchain 选 **Cross ARM GCC**
 4. `Project Properties → C/C++ Build → Build command` 保持 `make`
 5. **Environment** 里加一条（让 make 能找到工具链；IDE 自带的工具链路径一般已在 PATH）：
    ```
-   TOOLCHAIN = D:/STM32CubeIDE_1.13.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.11.3.rel1.win32_1.1.0.202305231506/tools/bin
+   TOOLCHAIN = <CubeIDE 安装目录>/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.*/tools/bin
    ```
 
 要做单步调试，再建一个 **Debug Configuration → GDB OpenOCD Debugging**，

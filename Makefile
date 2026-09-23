@@ -7,9 +7,11 @@
 #     make clean      清理
 #     make flash      用 STM32CubeProgrammer 烧录（需要 PATH 里有 CLI 或改 FLASHER）
 #
-# 【工具链就在你本机 —— CubeIDE 自带】
-#   下面的路径是本机实测存在的 CubeIDE 1.13.1 内嵌工具链。
-#   换机器/换 CubeIDE 版本时，只要改 TOOLCHAIN 这一行。
+# 【工具链】
+#   默认用 PATH 里的 arm-none-eabi-*。若没有，用 CubeIDE 自带的那份即可：
+#   在 CubeIDE 安装目录的 plugins/ 下找
+#     com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.*/tools/bin
+#   然后 make TOOLCHAIN="<那个 bin 目录>"
 #
 # 【为什么不用 CubeIDE 生成的 Debug/makefile】
 #   那份是 IDE 自动生成的（文件头写着 Do not edit），
@@ -18,17 +20,31 @@
 # ============================================================
 
 # ---------- 工具链 ----------
-TOOLCHAIN ?= D:/STM32CubeIDE_1.13.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.11.3.rel1.win32_1.1.0.202305231506/tools/bin
-PREFIX    := $(TOOLCHAIN)/arm-none-eabi-
+# 默认使用 PATH 里的 arm-none-eabi-*，不写死任何本机绝对路径。
+# 若工具链不在 PATH（例如直接用 CubeIDE 自带的），任选一种方式指定：
+#   ① 命令行覆盖：  make TOOLCHAIN="D:/STM32CubeIDE_x.y/.../tools/bin"
+#   ② 导入工程前导出：export PATH="$PATH:/path/to/tools/bin"
+#   ③ 改下面这行的默认值
+#
+#   CubeIDE 自带工具链的位置形如：
+#     <CubeIDE 安装目录>/STM32CubeIDE/plugins/
+#       com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.*/tools/bin
+TOOLCHAIN ?=
+ifneq ($(strip $(TOOLCHAIN)),)
+  PREFIX := $(TOOLCHAIN)/arm-none-eabi-
+else
+  PREFIX := arm-none-eabi-
+endif
 CC        := $(PREFIX)gcc
 AS        := $(PREFIX)gcc -x assembler-with-cpp
 CP        := $(PREFIX)objcopy
 SZ        := $(PREFIX)size
 NM        := $(PREFIX)nm
 
-# STM32_Programmer_CLI 就在你 CubeIDE 的安装目录里（CubeProgrammer 插件自带），
-# 不需要另外装。换 CubeIDE 版本时改这一行；也可以在命令行用 FLASHER=... 覆盖。
-FLASHER   ?= D:/STM32CubeIDE_1.13.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.cubeprogrammer.win32_2.1.0.202305091550/tools/bin/STM32_Programmer_CLI.exe
+# STM32_Programmer_CLI 通常随 CubeIDE 一起安装（CubeProgrammer 插件自带），
+# 也可能单独装。默认按 PATH 查找；不在 PATH 就用 FLASHER=... 覆盖，
+# 或用环境变量 STM32_CUBEPROGRAMMER 指向完整路径。
+FLASHER   ?= STM32_Programmer_CLI
 
 # ---------- 建 / 删目录的命令 ----------
 # ★ 为什么做成变量：Windows 上 make 用哪个 shell 决定了语法。
