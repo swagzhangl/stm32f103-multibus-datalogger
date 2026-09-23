@@ -1,0 +1,27 @@
+# ===== 构建产物 =====
+build/
+Debug/
+Release/
+
+# ===== CubeIDE / Eclipse 生成的启动配置（含本机绝对路径，跨机无用）=====
+*.launch
+
+# ===== Python 缓存 =====
+__pycache__/
+*.pyc
+
+# ===== 本地测试日志 / 采集数据（非源码）=====
+logs/
+
+# ===== 本地项目数据（WorkBuddy）=====
+.workbuddy/
+
+# ===== 临时 / 备份文件 =====
+*.bak*
+*.tmp
+*~
+
+# ===== 操作系统 / 编辑器 =====
+.DS_Store
+Thumbs.db
+*.swp
